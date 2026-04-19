@@ -96,7 +96,7 @@ input,textarea,select{font-family:inherit;outline:none;border:none;background:no
 .t-tick svg{width:8px;height:8px;stroke:#fff;fill:none;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;}
 .t-num{font-size:.55rem;font-weight:800;letter-spacing:.06em;color:var(--text-faint);margin-bottom:4px;}
 .t-name{font-size:.68rem;font-weight:700;line-height:1.3;word-break:break-word;color:var(--text);}
-.t-pri{position:absolute;bottom:18px;left:7px;font-size:.52rem;font-weight:800;color:var(--text-faint);}
+.t-pri{position:absolute;bottom:14px;left:5px;font-size:.46rem;font-weight:800;color:var(--text-faint);white-space:nowrap;overflow:hidden;max-width:28px;}
 .t-due{position:absolute;bottom:18px;right:7px;font-size:.48rem;font-weight:800;color:var(--text-faint);}
 .t-due.soon{color:#d94040;}
 .t-subdiv{position:absolute;bottom:0;left:0;right:0;height:11px;display:flex;gap:2px;padding:0 5px 4px;border-radius:0 0 var(--r) var(--r);}
@@ -253,6 +253,18 @@ input,textarea,select{font-family:inherit;outline:none;border:none;background:no
 .conf{position:absolute;top:-12px;border-radius:2px;animation:conf-fall linear forwards;}
 @keyframes conf-fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
 
+
+/* DUSTER */
+.d-tile{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 6px;text-align:center;border:2.5px solid var(--tile-border);border-radius:var(--r);cursor:crosshair;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;transition:background .2s,opacity .2s;background:var(--tile);}
+.d-tile.erased{background:#1a0a00;border-color:#3a1500;opacity:.4;}
+.d-tile.erasing{background:#8B3A14;border-color:#5a1a00;}
+.d-tile .d-name{font-size:.65rem;font-weight:700;color:var(--text);line-height:1.3;word-break:break-word;}
+.d-tile.erased .d-name{color:rgba(255,255,255,.2);text-decoration:line-through;}
+.d-tile .d-num{font-size:.5rem;font-weight:800;color:var(--text-faint);margin-bottom:3px;}
+.duster-cursor{position:fixed;pointer-events:none;z-index:600;width:44px;height:28px;transform:translate(-50%,-50%) rotate(-20deg);display:none;}
+.duster-cursor rect{fill:#D2956A;rx:4;}
+.duster-cursor .bristles rect{fill:#8B4513;}
+
 /* TOAST */
 .toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--card);border:2.5px solid var(--border);border-radius:99px;box-shadow:var(--shadow);padding:9px 22px;font-size:.82rem;font-weight:700;color:var(--text);z-index:300;opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .24s,transform .24s;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -303,6 +315,10 @@ input,textarea,select{font-family:inherit;outline:none;border:none;background:no
       <div class="fld"><label>Password</label><input id="cr-p" type="password" placeholder="minimum 6 characters" autocomplete="new-password"/></div>
       <div class="fld"><label>Confirm</label><input id="cr-p2" type="password" placeholder="repeat password"/></div>
       <button class="btn-primary" id="btn-signup" onclick="doCreate()">Create account!</button>
+    </div>
+    <div style="margin-top:16px;text-align:center;">
+      <button id="btn-guest" onclick="doGuest()" style="font-size:.82rem;font-weight:700;color:var(--text-faint);text-decoration:underline;background:none;border:none;cursor:pointer;">Continue as guest</button>
+      <div style="font-size:.7rem;color:var(--text-faint);margin-top:4px;">Your data won't sync across devices</div>
     </div>
   </div>
 </div>
@@ -433,19 +449,59 @@ input,textarea,select{font-family:inherit;outline:none;border:none;background:no
 
 <!-- SETTINGS MODAL -->
 <div class="ov" id="set-ov">
-  <div class="modal card" style="max-width:380px">
+  <div class="modal card" style="max-width:400px">
     <div class="m-title" style="margin-bottom:20px">Settings</div>
+
+    <!-- ACCOUNT -->
     <div class="ss">
       <div class="ss-title">Account</div>
-      <button class="btn-reset" onclick="doReset()">Reset all my goals</button>
-      <p class="reset-note">Clears every goal. Cannot be undone.</p>
+      <div style="font-size:.8rem;color:var(--text-sub);font-weight:600;margin-bottom:6px;" id="acc-email-disp"></div>
+      <button class="btn-reset" style="background:var(--bg2);border-color:var(--border);color:var(--text-sub);" onclick="doLogout()">Sign out</button>
     </div>
+
+    <!-- THEMES -->
+    <div class="ss" style="margin-top:18px">
+      <div class="ss-title">Themes</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;" id="preset-themes"></div>
+      <button onclick="toggleCustomColours()" style="font-size:.78rem;font-weight:700;color:var(--accent);text-decoration:underline;background:none;border:none;cursor:pointer;">+ Custom colours</button>
+      <div id="custom-colour-panel" style="display:none;margin-top:12px;padding:12px;background:var(--bg2);border:2px solid var(--border);border-radius:var(--r-sm);">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div><div style="font-size:.7rem;font-weight:700;color:var(--text-sub);margin-bottom:5px;">Background</div><input type="color" id="c-bg" oninput="previewCustom()" style="width:100%;height:34px;border:2px solid var(--border);border-radius:var(--r-sm);cursor:pointer;padding:2px;"/></div>
+          <div><div style="font-size:.7rem;font-weight:700;color:var(--text-sub);margin-bottom:5px;">Accent</div><input type="color" id="c-accent" oninput="previewCustom()" style="width:100%;height:34px;border:2px solid var(--border);border-radius:var(--r-sm);cursor:pointer;padding:2px;"/></div>
+          <div><div style="font-size:.7rem;font-weight:700;color:var(--text-sub);margin-bottom:5px;">Card</div><input type="color" id="c-card" oninput="previewCustom()" style="width:100%;height:34px;border:2px solid var(--border);border-radius:var(--r-sm);cursor:pointer;padding:2px;"/></div>
+          <div><div style="font-size:.7rem;font-weight:700;color:var(--text-sub);margin-bottom:5px;">Text</div><input type="color" id="c-text" oninput="previewCustom()" style="width:100%;height:34px;border:2px solid var(--border);border-radius:var(--r-sm);cursor:pointer;padding:2px;"/></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-save" style="flex:2;font-size:.8rem;padding:9px;" onclick="applyCustomTheme()">Apply</button>
+          <button class="btn-ghost" style="flex:1;font-size:.8rem;padding:9px;" onclick="resetTheme()">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOUND -->
+    <div class="ss" style="margin-top:18px">
+      <div class="ss-title">Completion sound</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="sound-options"></div>
+    </div>
+
+    <!-- ERASE GOALS -->
+    <div class="ss" style="margin-top:18px">
+      <div class="ss-title">Erase goals</div>
+      <p class="reset-note" style="margin-bottom:8px;">Erase individual goals with the duster, or wipe everything at once.</p>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-reset" style="flex:1;" onclick="openDuster()">Open duster</button>
+        <button class="btn-reset" style="flex:1;" onclick="doReset()">Wipe all 25</button>
+      </div>
+    </div>
+
+    <!-- CLEAR TASKS -->
     <div class="ss" style="margin-top:16px">
-      <div class="ss-title">Today's Dashboard</div>
+      <div class="ss-title">Today's tasks</div>
+      <p class="reset-note" style="margin-bottom:8px;">Clears today's task list only. Goals are kept.</p>
       <button class="btn-reset" onclick="clearDash()">Clear today's tasks</button>
-      <p class="reset-note">Removes all tasks from today only.</p>
     </div>
-    <div class="macts" style="margin-top:18px"><button class="btn-save" onclick="closeSettings()">Done!</button></div>
+
+    <div class="macts" style="margin-top:20px"><button class="btn-save" onclick="closeSettings()">Done!</button></div>
   </div>
 </div>
 
@@ -470,6 +526,16 @@ input,textarea,select{font-family:inherit;outline:none;border:none;background:no
   </div>
 </div>
 
+<svg id="duster-cursor" class="duster-cursor" viewBox="0 0 44 28" xmlns="http://www.w3.org/2000/svg">
+  <rect x="8" y="4" width="28" height="16" rx="4" fill="#D2956A"/>
+  <rect x="8" y="4" width="28" height="7" rx="4" fill="#C0822A"/>
+  <rect x="2" y="14" width="6" height="10" rx="2" fill="#8B4513"/>
+  <rect x="9" y="14" width="6" height="10" rx="2" fill="#8B4513"/>
+  <rect x="16" y="14" width="6" height="10" rx="2" fill="#8B4513"/>
+  <rect x="23" y="14" width="6" height="10" rx="2" fill="#8B4513"/>
+  <rect x="30" y="14" width="6" height="10" rx="2" fill="#8B4513"/>
+  <rect x="37" y="14" width="6" height="10" rx="2" fill="#8B4513"/>
+</svg>
 <div class="confetti-wrap" id="confetti-wrap"></div>
 <div class="bingo-flash" id="bingo-flash"><div class="bingo-box"><div class="bingo-word">BINGO!</div><div class="bingo-sub">Row complete — keep going!</div></div></div>
 <div class="toast" id="toast"></div>
@@ -477,7 +543,7 @@ input,textarea,select{font-family:inherit;outline:none;border:none;background:no
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -573,11 +639,22 @@ window.doLogout = async () => {
   await signOut(auth);
 };
 
+window.doGuest = async () => {
+  const btn = document.getElementById('btn-guest');
+  btn.textContent = 'Loading...'; btn.style.pointerEvents = 'none';
+  try {
+    await signInAnonymously(auth);
+  } catch(e) {
+    setErr('Guest sign-in failed. Try again.');
+    btn.textContent = 'Continue as guest'; btn.style.pointerEvents = '';
+  }
+};
+
 // ── AUTH STATE ──
 onAuthStateChanged(auth, async user => {
   if (user) {
     CU = user.uid;
-    CUname = user.displayName || user.email.split('@')[0];
+    CUname = user.displayName || (user.isAnonymous ? 'Guest' : user.email.split('@')[0]);
     await loadUserData();
     bootApp();
   } else {
@@ -598,6 +675,8 @@ function bootApp() {
   document.getElementById('nav-u').textContent = CUname;
   document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
   updateStreak();
+  loadSavedTheme();
+  currentSound = userData?.sound || 'pop';
   renderBoard(); renderSug(); renderStats(); renderDash(); populateDashPicker(); renderStreak(); renderChart(); renderDue();
   const params = new URLSearchParams(location.search);
   if (params.get('share')) showSharedBoard(params.get('share'));
@@ -711,6 +790,7 @@ async function toggleDone(n) {
   if (goals[n].completed && goals[n].subdivs>0) goals[n].subdivFilled = goals[n].subdivs;
   await setGoals(goals); await recordHistory();
   renderBoard(); renderSug(); renderStats(); renderDash(); populateDashPicker(); renderChart(); renderDue();
+  if(goals[n].completed) playSound(currentSound);
   showToast(goals[n].completed ? 'Marked complete!' : 'Marked incomplete');
   checkBingo(); checkAllDone();
 }
@@ -754,7 +834,7 @@ window.openTile = n => {
   selPri=g.priority||3; renderPills();
   updateSubdivPreview(g.subdivFilled||0);
   document.getElementById('tile-ov').classList.add('open');
-  setTimeout(()=>document.getElementById('m-name').focus(),40);
+  setTimeout(()=>{ const inp = document.getElementById('m-name'); inp.focus(); inp.onkeydown = e => { if(e.key==='Enter'){ e.preventDefault(); window.saveTile(); } }; },40);
 };
 window.closeTile = () => { document.getElementById('tile-ov').classList.remove('open'); editN=null; };
 window.selP = p => { selPri=p; renderPills(); };
@@ -983,10 +1063,15 @@ window.dashRemove = async ti => { const tasks=getDash();tasks.splice(ti,1);await
 window.clearDash = async () => { if(!confirm('Clear all today\'s tasks?'))return;await setDash([]);renderDash();closeSettings();showToast('Dashboard cleared!'); };
 
 // ── SETTINGS ──
-window.openSettings = () => document.getElementById('set-ov').classList.add('open');
+window.openSettings = () => {
+  document.getElementById('set-ov').classList.add('open');
+  renderPresetThemes(); renderSoundOptions();
+  const el = document.getElementById('acc-email-disp');
+  if (el && auth.currentUser) el.textContent = auth.currentUser.isAnonymous ? 'Signed in as Guest' : auth.currentUser.email;
+};
 window.closeSettings = () => document.getElementById('set-ov').classList.remove('open');
 window.doReset = async () => {
-  if(!confirm('Reset all goals?'))return;
+  if(!confirm('Are you sure? This will permanently delete all 25 goals and cannot be undone.'))return;
   await setGoals({});seenLines.clear();congratsShown=false;await setDash([]);
   renderBoard();renderSug();renderStats();renderDash();populateDashPicker();renderChart();renderDue();closeSettings();showToast('Board reset!');
 };
@@ -1014,6 +1099,243 @@ window.showToast = msg => {
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){window.closeTile?.();window.closeSettings?.();window.closeShare?.();}});
 
+// ── THEMES ──
+const PRESETS = [
+  { name:'Warm', bg:'#FEF3E2', bg2:'#F5DEB3', card:'#FFFCF5', accent:'#E8894A', accent2:'#C0622A', border:'#D2956A', border2:'#A0522D', text:'#3B1A08', textsub:'#7B3F1A', textfaint:'#B07848', tile:'#FDE8C8', tileborder:'#C8864E', tiledone:'#D4784A', tiledoneb:'#A0522D', seg:'#EDD0A0', segfill:'#C0622A', segfill2:'#8B3A14', nav:'#F5DEB3', navborder:'#C8864E', hint:'#7B3F1A' },
+  { name:'Ocean', bg:'#E8F4FD', bg2:'#C8E6F8', card:'#F5FAFF', accent:'#2196F3', accent2:'#1565C0', border:'#90CAF9', border2:'#1976D2', text:'#0D2137', textsub:'#1A4A6B', textfaint:'#5B8DB8', tile:'#DAEEFB', tileborder:'#64B5F6', tiledone:'#1976D2', tiledoneb:'#0D47A1', seg:'#BBDEFB', segfill:'#1565C0', segfill2:'#0D47A1', nav:'#C8E6F8', navborder:'#64B5F6', hint:'#1A4A6B' },
+  { name:'Forest', bg:'#F1F8F1', bg2:'#D8EDD8', card:'#F8FBF8', accent:'#388E3C', accent2:'#1B5E20', border:'#A5D6A7', border2:'#2E7D32', text:'#0D2B0D', textsub:'#1B4D1B', textfaint:'#5A8A5A', tile:'#DCEDC8', tileborder:'#81C784', tiledone:'#2E7D32', tiledoneb:'#1B5E20', seg:'#C8E6C9', segfill:'#1B5E20', segfill2:'#1B5E20', nav:'#D8EDD8', navborder:'#81C784', hint:'#1B4D1B' },
+  { name:'Lavender', bg:'#F3F0FF', bg2:'#E0D9FF', card:'#FAF8FF', accent:'#7C3AED', accent2:'#5B21B6', border:'#C4B5FD', border2:'#6D28D9', text:'#1E0A3C', textsub:'#3B1A6B', textfaint:'#7C5CBF', tile:'#EDE9FE', tileborder:'#A78BFA', tiledone:'#6D28D9', tiledoneb:'#4C1D95', seg:'#DDD6FE', segfill:'#5B21B6', segfill2:'#4C1D95', nav:'#E0D9FF', navborder:'#A78BFA', hint:'#3B1A6B' },
+  { name:'Rose', bg:'#FFF0F3', bg2:'#FFD6DF', card:'#FFF8FA', accent:'#E91E63', accent2:'#880E4F', border:'#F48FB1', border2:'#C2185B', text:'#2D0010', textsub:'#6B0028', textfaint:'#B05070', tile:'#FCE4EC', tileborder:'#F06292', tiledone:'#C2185B', tiledoneb:'#880E4F', seg:'#F8BBD9', segfill:'#880E4F', segfill2:'#880E4F', nav:'#FFD6DF', navborder:'#F06292', hint:'#6B0028' },
+  { name:'Midnight', bg:'#0F0F1A', bg2:'#1A1A2E', card:'#16213E', accent:'#E94560', accent2:'#C23152', border:'#2A2A4A', border2:'#3A3A6A', text:'#E0E0FF', textsub:'#A0A0CC', textfaint:'#6060AA', tile:'#1A1A2E', tileborder:'#2A2A4A', tiledone:'#C23152', tiledoneb:'#8B1E35', seg:'#2A2A4A', segfill:'#E94560', segfill2:'#C23152', nav:'#1A1A2E', navborder:'#2A2A4A', hint:'#A0A0CC' },
+];
+
+function applyTheme(t) {
+  const r = document.documentElement.style;
+  r.setProperty('--bg', t.bg); r.setProperty('--bg2', t.bg2);
+  r.setProperty('--card', t.card); r.setProperty('--card2', t.bg2);
+  r.setProperty('--accent', t.accent); r.setProperty('--accent2', t.accent2);
+  r.setProperty('--border', t.border); r.setProperty('--border2', t.border2);
+  r.setProperty('--text', t.text); r.setProperty('--text-sub', t.textsub); r.setProperty('--text-faint', t.textfaint);
+  r.setProperty('--tile', t.tile); r.setProperty('--tile-border', t.tileborder);
+  r.setProperty('--tile-done', t.tiledone); r.setProperty('--tile-done-b', t.tiledoneb);
+  r.setProperty('--seg-empty', t.seg); r.setProperty('--seg-filled', t.segfill); r.setProperty('--seg-filled2', t.segfill2);
+  r.setProperty('--nav', t.nav); r.setProperty('--nav-border', t.navborder); r.setProperty('--brown-hint', t.hint);
+  r.setProperty('--shadow', `4px 4px 0px ${t.border2}`);
+  r.setProperty('--shadow-sm', `3px 3px 0px ${t.border2}`);
+  r.setProperty('--shadow-card', `4px 4px 0px ${t.border2}`);
+}
+
+function renderPresetThemes() {
+  const wrap = document.getElementById('preset-themes');
+  if (!wrap) return;
+  wrap.innerHTML = PRESETS.map((t,i) => `
+    <button onclick="pickPreset(${i})" style="padding:10px 6px;border:2px solid ${t.border};border-radius:10px;background:${t.bg};cursor:pointer;transition:transform .1s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div style="display:flex;gap:3px;justify-content:center;margin-bottom:5px;">
+        <div style="width:12px;height:12px;border-radius:50%;background:${t.accent};"></div>
+        <div style="width:12px;height:12px;border-radius:50%;background:${t.tile};border:1.5px solid ${t.tileborder};"></div>
+        <div style="width:12px;height:12px;border-radius:50%;background:${t.segfill};"></div>
+      </div>
+      <div style="font-size:.65rem;font-weight:800;color:${t.textsub};">${t.name}</div>
+    </button>`).join('');
+}
+
+window.pickPreset = async i => {
+  const t = PRESETS[i];
+  applyTheme(t);
+  if (userData) { userData.theme = {type:'preset', index:i}; await saveUserData(); }
+  showToast(`${t.name} theme applied!`);
+};
+
+window.previewCustom = () => {
+  const bg=document.getElementById('c-bg').value;
+  const accent=document.getElementById('c-accent').value;
+  const card=document.getElementById('c-card').value;
+  const text=document.getElementById('c-text').value;
+  document.documentElement.style.setProperty('--bg', bg);
+  document.documentElement.style.setProperty('--bg2', bg);
+  document.documentElement.style.setProperty('--card', card);
+  document.documentElement.style.setProperty('--card2', card);
+  document.documentElement.style.setProperty('--accent', accent);
+  document.documentElement.style.setProperty('--text', text);
+};
+
+window.applyCustomTheme = async () => {
+  const bg=document.getElementById('c-bg').value;
+  const accent=document.getElementById('c-accent').value;
+  const card=document.getElementById('c-card').value;
+  const text=document.getElementById('c-text').value;
+  if (userData) { userData.theme = {type:'custom', bg, accent, card, text}; await saveUserData(); }
+  showToast('Custom theme saved!');
+};
+
+function loadSavedTheme() {
+  if (!userData?.theme) return;
+  const t = userData.theme;
+  if (t.type === 'preset') { applyTheme(PRESETS[t.index]); }
+  else if (t.type === 'custom') {
+    document.documentElement.style.setProperty('--bg', t.bg);
+    document.documentElement.style.setProperty('--bg2', t.bg);
+    document.documentElement.style.setProperty('--card', t.card);
+    document.documentElement.style.setProperty('--card2', t.card);
+    document.documentElement.style.setProperty('--accent', t.accent);
+    document.documentElement.style.setProperty('--text', t.text);
+    document.getElementById('c-bg').value = t.bg;
+    document.getElementById('c-accent').value = t.accent;
+    document.getElementById('c-card').value = t.card;
+    document.getElementById('c-text').value = t.text;
+  }
+}
+
+// ── SOUNDS ──
+const SOUNDS = [
+  { name:'None', id:'none' },
+  { name:'Pop', id:'pop' },
+  { name:'Chime', id:'chime' },
+  { name:'Muted', id:'muted' },
+];
+let currentSound = 'pop';
+
+function playSound(id) {
+  if (id === 'none') return;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const now = ctx.currentTime;
+  if (id === 'pop') {
+    // nicer pop: rises sharply then falls, with a slight harmonic
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(300, now);
+    o.frequency.linearRampToValueAtTime(900, now + 0.04);
+    o.frequency.exponentialRampToValueAtTime(400, now + 0.18);
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.45, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(now); o.stop(now + 0.25);
+  } else if (id === 'chime') {
+    [523, 659, 784].forEach((f,i) => {
+      const o=ctx.createOscillator(), og=ctx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      og.gain.setValueAtTime(0.25, now+i*0.12);
+      og.gain.exponentialRampToValueAtTime(0.001, now+i*0.12+0.5);
+      o.connect(og); og.connect(ctx.destination);
+      o.start(now+i*0.12); o.stop(now+i*0.12+0.5);
+    });
+  } else if (id === 'muted') {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 600;
+    o.type = 'sine'; o.frequency.setValueAtTime(440, now);
+    o.frequency.linearRampToValueAtTime(520, now + 0.06);
+    g.gain.setValueAtTime(0.18, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    o.connect(f); f.connect(g); g.connect(ctx.destination);
+    o.start(now); o.stop(now + 0.38);
+  }
+}
+
+function renderSoundOptions() {
+  const wrap = document.getElementById('sound-options');
+  if (!wrap) return;
+  wrap.innerHTML = SOUNDS.map(s => `
+    <button id="snd-${s.id}" onclick="pickSound('${s.id}')" style="padding:8px 4px;border:2px solid var(--border);border-radius:var(--r-sm);background:${currentSound===s.id?'var(--accent)':'var(--bg2)'};color:${currentSound===s.id?'#fff':'var(--text-sub)'};font-size:.74rem;font-weight:700;cursor:pointer;transition:all .15s;">
+      ${s.name}
+    </button>`).join('');
+}
+
+window.pickSound = async id => {
+  currentSound = id;
+  playSound(id);
+  renderSoundOptions();
+  if (userData) { userData.sound = id; await saveUserData(); }
+};
+
+// ── CUSTOM COLOUR HELPERS ──
+window.toggleCustomColours = () => {
+  const p = document.getElementById('custom-colour-panel');
+  p.style.display = p.style.display === 'none' ? '' : 'none';
+};
+
+window.resetTheme = async () => {
+  applyTheme(PRESETS[0]);
+  if (userData) { userData.theme = {type:'preset', index:0}; await saveUserData(); }
+  showToast('Theme reset!');
+};
+
+
+// ── DUSTER ──
+let dusterActive = false;
+
+window.openDuster = () => {
+  closeSettings();
+  renderDusterGrid();
+  const ov = document.getElementById('duster-ov');
+  ov.style.display = 'flex';
+  dusterActive = true;
+  document.getElementById('duster-cursor').style.display = 'block';
+};
+
+window.closeDuster = () => {
+  document.getElementById('duster-ov').style.display = 'none';
+  document.getElementById('duster-cursor').style.display = 'none';
+  dusterActive = false;
+  renderBoard(); renderSug(); renderStats(); renderDue(); populateDashPicker();
+};
+
+function renderDusterGrid() {
+  const grid = document.getElementById('duster-grid');
+  const goals = getGoals();
+  grid.innerHTML = '';
+  for (let i = 1; i <= 25; i++) {
+    const g = goals[i] || {};
+    const empty = !g.name;
+    const div = document.createElement('div');
+    div.className = 'd-tile' + (empty ? ' erased' : '');
+    div.dataset.n = i;
+    div.innerHTML = `<div class="d-num">${i}</div><div class="d-name">${g.name || '—'}</div>`;
+    // mouse
+    div.addEventListener('mouseenter', () => eraseGoal(i, div));
+    // touch
+    div.addEventListener('touchstart', e => { e.preventDefault(); eraseGoal(i, div); }, {passive:false});
+    grid.appendChild(div);
+  }
+}
+
+async function eraseGoal(n, el) {
+  if (el.classList.contains('erased')) return;
+  el.classList.add('erasing');
+  setTimeout(() => {
+    el.classList.remove('erasing');
+    el.classList.add('erased');
+    el.querySelector('.d-name').textContent = '—';
+  }, 180);
+  playSound(currentSound);
+  const goals = getGoals();
+  delete goals[n];
+  await setGoals(goals);
+}
+
+// duster cursor follow
+document.addEventListener('mousemove', e => {
+  const cur = document.getElementById('duster-cursor');
+  if (!cur) return;
+  cur.style.left = e.clientX + 'px';
+  cur.style.top = e.clientY + 'px';
+});
+
+// touch drag erase
+document.addEventListener('touchmove', e => {
+  if (!dusterActive) return;
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (el && el.closest('.d-tile')) {
+    const tile = el.closest('.d-tile');
+    const n = parseInt(tile.dataset.n);
+    if (n && !tile.classList.contains('erased')) eraseGoal(n, tile);
+  }
+}, {passive:true});
+
 // check for shared board before auth loads
 const _params=new URLSearchParams(location.search);
 if(_params.get('share')){
@@ -1028,5 +1350,20 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
 }
 </script>
+
+<!-- DUSTER OVERLAY -->
+<div id="duster-ov" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(20,10,0,.7);flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;">
+  <div style="width:100%;max-width:600px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div>
+        <div style="font-family:'Baloo 2',sans-serif;font-size:1.1rem;font-weight:800;color:#FEF3E2;">Duster mode</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.5);font-weight:600;">Hover or drag over a tile to erase it</div>
+      </div>
+      <button onclick="closeDuster()" style="padding:8px 18px;background:var(--accent);color:#fff;border:2px solid var(--accent2);border-radius:var(--r-sm);font-weight:700;font-size:.82rem;font-family:inherit;">Done</button>
+    </div>
+    <div class="bingo-grid" id="duster-grid" style="touch-action:none;"></div>
+  </div>
+</div>
+
 </body>
 </html>
